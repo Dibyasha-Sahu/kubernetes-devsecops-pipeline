@@ -125,5 +125,5 @@ jobs:
         with:
           context: ./app
           push: true
-          tags: ghcr.io/${{ github.repository }}:${{ github.sha }}
+          tags: ghcr.io/dibyasha-sahu/kubernetes-devsecops-pipeline:${{ github.sha }}
 
