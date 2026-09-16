@@ -1530,11 +1530,141 @@ Phase 9 — DevSecOps
 
 Phase 10 — Monitoring
 
-⏳ Planned
+✅ Complete
 
 Phase 11 — Failure Testing & Rollback
 
-⏳ Planned
+✅ Complete
+
+Phase 11 validated controlled failure, Kubernetes recovery, monitoring detection, and Helm rollback.
+
+### Phase 11 Objectives
+
+The failure and recovery workflow followed this sequence:
+
+Healthy Application
+→ Controlled Failure
+→ Failure Observed
+→ Kubernetes / Monitoring Detection
+→ Recovery / Rollback
+→ Healthy Application
+
+### 11.1 Healthy Baseline
+
+Before failure testing:
+
+- Helm release: `devsecops-app`
+- Namespace: `default`
+- Helm revision: `1`
+- Application image: `devsecops-flask-app:1.3`
+- Deployment replicas: `2`
+- Application Pods: `2/2 Running`
+- `/health`: `healthy`
+- `/ready`: `ready`
+- Prometheus target: `up = 1`
+- Grafana dashboard: `DevSecOps Application Monitoring`
+
+### 11.2 Kubernetes Self-Healing Test
+
+A running application Pod was deliberately deleted.
+
+Observed behavior:
+
+- Kubernetes detected that the Deployment had fewer available replicas.
+- A replacement Pod was automatically created.
+- The replacement Pod became `1/1 Running`.
+- Deployment returned to `2/2`.
+- Application health returned to `healthy`.
+
+This demonstrated Kubernetes Deployment self-healing.
+
+### 11.3 Controlled Bad Image Deployment
+
+A controlled Helm upgrade was performed using the intentionally invalid image tag:
+
+`devsecops-flask-app:99.99.99-failure-test`
+
+Result:
+
+- Helm revision `2` was deployed.
+- The new Pod entered `ImagePullBackOff`.
+- Kubernetes Events reported `ErrImagePull` and `ImagePullBackOff`.
+- The previous healthy Pods remained available during the failed rollout.
+- The rollout did not successfully replace both healthy replicas.
+
+### 11.4 Helm Rollback
+
+The failed Helm revision was rolled back.
+
+Rollback:
+
+`Revision 2 → Revision 1`
+
+Helm created revision `3` with the description:
+
+`Rollback to 1`
+
+After rollback:
+
+- Image returned to `devsecops-flask-app:1.3`
+- Deployment returned to `2/2`
+- Application Pods became healthy
+- `/health` returned `healthy`
+
+### 11.5 Monitoring Failure Detection
+
+The application Deployment was intentionally scaled from `2` replicas to `0`.
+
+Observed:
+
+- Application Pods: `0`
+- Deployment: `0/0`
+- Service endpoints: `<none>`
+- Prometheus `up`: `0`
+
+This demonstrated that Prometheus detected the application becoming unavailable.
+
+### 11.6 Monitoring Recovery
+
+The application Deployment was restored from `0` to `2` replicas.
+
+Observed:
+
+- Deployment: `2/2`
+- Application Pods: `2/2 Running`
+- Service endpoints: `2`
+- Application `/health`: `healthy`
+- Prometheus `up`: `1`
+
+This demonstrated recovery of both the application and monitoring target.
+
+### 11.7 Final Phase 11 State
+
+Final verified state:
+
+- Helm status: `deployed`
+- Helm revision: `3`
+- Image: `devsecops-flask-app:1.3`
+- Replicas: `2`
+- Application health: `healthy`
+- Prometheus target: `up = 1`
+- Grafana: operational
+- Grafana dashboard: `DevSecOps Application Monitoring`
+
+### Phase 11 Result
+
+Phase 11 successfully demonstrated:
+
+- Controlled Pod failure
+- Kubernetes self-healing
+- Controlled bad-image deployment
+- `ErrImagePull`
+- `ImagePullBackOff`
+- Helm rollback
+- Prometheus failure detection
+- Application recovery
+- Monitoring recovery
+- Final healthy state
 
 Phase 12 — Documentation
 
